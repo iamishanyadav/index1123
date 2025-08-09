@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Rakshabandhan — Personalized Greeting</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Great+Vibes&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --accent:#ff6b81;
+    --muted:#cfcfcf;
+    --card-bg: rgba(255,255,255,0.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%; margin:0; background:#000; color:#fff; font-family:"Poppins",system-ui, -apple-system;}
+
+  /* Floating emojis (always visible) */
+  #floating { position:fixed; inset:0; pointer-events:none; z-index:5; }
+  .float{ position:absolute; font-size:30px; opacity:0.95; will-change:transform,opacity; animation:floaty linear infinite; }
+  @keyframes floaty {
+    0%{ transform:translateY(0) translateX(0); }
+    50%{ transform:translateY(-28px) translateX(14px); opacity:.98; }
+    100%{ transform:translateY(0) translateX(0); }
+  }
+  /* Glow effect on hover */
+.wish-card {
+  position: relative;
+  overflow: hidden;
+}
+.wish-card:hover {
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+  transform: scale(1.03);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Sparkle particles */
+.wish-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.9) 2px, transparent 3px);
+  background-size: 20px 20px;
+  animation: sparkleMove 3s linear infinite;
+  opacity: 0.1;
+  pointer-events: none;
+}
+@keyframes sparkleMove {
+  0% { transform: translate(0,0); }
+  100% { transform: translate(20px,20px); }
+}
+
+
+  /* Scenes */
+  .scene { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; padding:22px; transition:opacity .4s ease; }
+  .hidden { display:none; }
+
+  /* Scene 1 - Name input */
+  .card { width:94%; max-width:760px; background:rgba(0,0,0,0.6); border-radius:12px; padding:28px; text-align:center; box-shadow:0 8px 30px rgba(0,0,0,.6); border:1px solid rgba(255,255,255,0.03); }
+  h1.greet { font-family:"Great Vibes",cursive; font-size:44px; color:var(--accent); margin-bottom:10px; }
+  .controls { margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+
+  input[name="didi"]{
+    padding:12px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02); color:#fff;
+    min-width:220px; font-size:16px;
+  }
+  button.primary{
+    background:linear-gradient(90deg,var(--accent),#ff9aa2); color:#111; border:0; padding:11px 18px; border-radius:8px; cursor:pointer; font-weight:600;
+  }
+
+  /* Scene 2 - Paragraph message (left->right animation) */
+  .msg-box{ width:94%; max-width:820px; background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02)); border-radius:12px; padding:24px; border:1px solid rgba(255,255,255,0.03); transform:translateX(-30%); opacity:0; }
+  .msg-box p{ color:#f3f3f3; font-size:18px; line-height:1.5; margin:0; }
+  .msg-show{ animation: slideIn 800ms ease forwards; }
+  @keyframes slideIn {
+    to { transform:translateX(0); opacity:1; }
+  }
+
+  /* Scene 3 - Video */
+  .video-wrap{ position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  video#rakhiVid{ width:50%; height:80%; object-fit:contain; display:block; }
+  .video-controls{ position:absolute; z-index:7; bottom:28px; right:28px; }
+
+  /* 4 cards in a row (scene 4) */
+  .cards-row { width:100%; max-width:1180px; display:flex; gap:18px; justify-content:center; align-items:flex-start; padding:16px; overflow:auto; -webkit-overflow-scrolling:touch; }
+  .wish-card {
+    flex:0 0 220px;
+    background:var(--card-bg);
+    border-radius:12px;
+    padding:12px;
+    text-align:center;
+    border:1px solid rgba(255,255,255,0.04);
+    transform:translateY(24px);
+    opacity:0;
+  }
+  .wish-card img{ width:100%; height:150px; object-fit:cover; border-radius:8px; cursor:pointer; display:block; }
+  .wish-card p{ margin:10px 6px 0; color:#fff; font-weight:600; font-size:15px; }
+
+  /* animate cards with small delay (applied via JS) */
+  .card-animate { animation: cardIn 600ms cubic-bezier(.2,.9,.2,1) forwards; }
+  @keyframes cardIn { to { transform:translateY(0); opacity:1; } }
+
+  /* responsive: mobile single row scrollable */
+  @media (max-width:780px){
+    h1.greet{ font-size:36px; }
+    .wish-card{ flex:0 0 78%; }
+    .msg-box p{ font-size:16px; }
+  }
+
+  /* small helper */
+  .skip {
+    background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.06); padding:8px 12px; border-radius:8px; cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- Floating emojis -->
+<div id="floating" aria-hidden="true"></div>
+
+<!-- SCENE 1: NAME -->
+<section class="scene" id="scene1">
+  <div class="card" role="dialog" aria-labelledby="title1">
+    <h1 class="greet" id="title1">Didi Apka naam likho</h1>
+    <!-- <div style="color:var(--muted); margin-bottom:12px;">Bas ek chhota sa naam — phir surprise dekho</div> -->
+    <div class="controls">
+      <input type="text" id="didiInput" name="didi" placeholder="Jaise: Neha" autocomplete="off" />
+      <button class="primary" id="submitName">Submit</button>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE 2: MESSAGE -->
+<section class="scene hidden" id="scene2">
+  <div class="msg-box" id="msgBox" role="region" aria-live="polite">
+    <div style="color:var(--muted); margin-bottom:12px;"> <h1 style="text-align: center; font-weight: 1000; font-size: xx-large;">DEAR DIDI </h1></div>
+    <p id="messageText">
+      Didi, tumhara pyar aur khayal hamesha mere din ko roshan karta hai. Aaj iss khas din par tumhe har khushi, sehat aur safalta ki shubhkamnayein — much love ❤️
+    </p>
+  </div>
+  <div style="height:18px"></div>
+  <div style="margin-top:18px;">
+    <button class="skip" id="toVideoBtn">Aage Video Dekho</button>
+  </div>
+</section>
+
+<!-- SCENE 3: VIDEO (full-screen style) -->
+<section class="scene hidden" id="scene3" aria-hidden="true">
+  <div class="video-wrap" id="videoWrap" style="width:100%;height:100vh;">
+    <!-- using an HD stock rakhi-style video (you can replace URL) -->
+    <video id="rakhiVid" playsinline muted></video>
+    <div class="video-controls">
+      <button class="skip" id="skipVideo">Skip Video</button>
+    </div>
+  </div>
+</section>
+
+<!-- SCENE 4: WISH CARDS -->
+<section class="scene hidden" id="scene4" aria-hidden="true">
+  <h1 style="font-family:'Great Vibes',cursive;font-size:36px;margin-bottom:8px;">Happy Rakshabandhan, <span id="didiNameDisplay"></span>!</h1>
+  <div class="cards-row" id="cardsRow" role="list">
+    <div class="wish-card" role="listitem">
+      <img src="Screenshot 2025-08-09 172510.png" alt="photo1" data-index="0">
+      <p>Hamesha muskurati raho — tumhara saath anmol hai.</p>
+    </div>
+    <div class="wish-card" role="listitem">
+      <img src="Screenshot 2025-08-09 172213.png" alt="photo2" data-index="1" height="50px">
+      <p>Tumhari har khushi, har sapna poora ho — Love you.</p>
+    </div>
+    <div class="wish-card" role="listitem">
+      <img src="Screenshot 2025-08-09 172602.png" alt="photo3" data-index="2">
+      <p>Dua hai ki zindagi me bas khushiyaan ho — Happy Rakhi!</p>
+    </div>
+    <div class="wish-card" role="listitem">
+      <img src="Screenshot 2025-08-09 172613.png" alt="photo4" data-index="3">
+      <p>Hamesha mera saath rakho — tum ho to sab kuch hai.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Hidden file input for replacing images -->
+<input type="file" id="imgPicker" accept="image/*" style="display:none" />
+
+<!-- Hidden YouTube iframe for music (set src on user gesture) -->
+<!-- Replace the videoId below if different; autoplay will be triggered after user clicks Submit -->
+<iframe id="ytMusic" width="1" height="1" style="position:fixed;left:-2000px;top:-2000px;" frameborder="0" allow="autoplay"
+  src="" title="bg-music" aria-hidden="true"></iframe>
+
+<script>
+/* ---------- CONFIG ---------- */
+// Rakhi video file (5 - 10s recommended). You can replace with your own MP4 URL.
+const RAKHI_VIDEO_URL = "Raksha Bandhan.mp4";
+
+// YouTube music video ID for "Rangeya Rangeya Ishq" (from earlier): J62XdJ72BUI
+const YT_MUSIC_ID = "J62XdJ72BUI";
+
+/* ---------- FLOATING EMOJIS ---------- */
+const floatContainer = document.getElementById('floating');
+const emojiPool = ['❤️'];
+for(let i=0;i<18;i++){
+  const el = document.createElement('div');
+  el.className = 'float';
+  el.textContent = emojiPool[Math.floor(Math.random()*emojiPool.length)];
+  el.style.left = (6 + Math.random()*88)+'%';
+  el.style.top = (6 + Math.random()*88)+'%';
+  el.style.animationDuration = (6 + Math.random()*6) + 's';
+  el.style.fontSize = (18 + Math.random()*20) + 'px';
+  el.style.opacity = (0.6 + Math.random()*0.45);
+  floatContainer.appendChild(el);
+}
+
+/* ---------- SCENE FLOW ---------- */
+const scene1 = document.getElementById('scene1');
+const scene2 = document.getElementById('scene2');
+const scene3 = document.getElementById('scene3');
+const scene4 = document.getElementById('scene4');
+
+const submitBtn = document.getElementById('submitName');
+const input = document.getElementById('didiInput');
+const msgBox = document.getElementById('msgBox');
+const toVideoBtn = document.getElementById('toVideoBtn');
+const skipVideoBtn = document.getElementById('skipVideo');
+const videoEl = document.getElementById('rakhiVid');
+const nameDisplay = document.getElementById('didiNameDisplay');
+const ytIframe = document.getElementById('ytMusic');
+
+let userName = "";
+
+// preload video (to minimize delay)
+videoEl.src = RAKHI_VIDEO_URL;
+videoEl.preload = "auto";
+videoEl.loop = false;
+videoEl.muted = true; // video muted (music separate)
+
+// on submit (user gesture) → show message scene with left→right animation
+submitBtn.addEventListener('click', ()=>{
+  const v = input.value.trim();
+  if(!v) { input.focus(); input.style.outline = "2px solid #ff6b81"; setTimeout(()=> input.style.outline = "",10000); return; }
+  userName = v;
+  // set name for later scenes
+  nameDisplay.textContent = userName;
+
+  // start YouTube music iframe (use user gesture to set src - helps autoplay)
+  ytIframe.src = "https://www.youtube.com/embed/" + YT_MUSIC_ID + "?autoplay=1&controls=0&loop=1&playlist=" + YT_MUSIC_ID + "&modestbranding=1&iv_load_policy=3&rel=0";
+  // show message scene
+  scene1.classList.add('hidden');
+  scene2.classList.remove('hidden');
+
+  // animate message left->right
+  msgBox.classList.remove('msg-show'); // reset if previously used
+  void msgBox.offsetWidth; // force reflow
+  msgBox.classList.add('msg-show');
+
+  // after short delay auto-forward to video (or user can click "Aage Video Dekho")
+  setTimeout(()=> {
+    // move to video automatically after ~3.5s
+    goToVideo();
+  }, 3500);
+});
+
+// manual button to go to video
+toVideoBtn.addEventListener('click', goToVideo);
+
+// go to video scene
+function goToVideo(){
+  scene2.classList.add('hidden');
+  scene3.classList.remove('hidden');
+
+  // ensure video starts (muted playback allowed). We'll play (muted) for visual.
+  videoEl.currentTime = 0;
+  videoEl.play().catch(()=>{ /* if play blocked, user can press Skip */ });
+
+  // after approx 7 seconds (or when video ends) go to cards. Use both listeners.
+  const autoAdvanceMs = 7000; // change if you'd like 5000-10000
+  const timeoutId = setTimeout(()=> { toCards(); }, autoAdvanceMs);
+
+  // also advance when video ends naturally
+  const onEnded = ()=> { clearTimeout(timeoutId); toCards(); };
+  videoEl.addEventListener('ended', onEnded, { once:true });
+
+  // skip button
+  skipVideoBtn.onclick = ()=> {
+    clearTimeout(timeoutId);
+    videoEl.pause();
+    toCards();
+  };
+}
+
+// show cards scene and animate cards sequentially
+function toCards(){
+  scene3.classList.add('hidden');
+  scene4.classList.remove('hidden');
+
+  // play music (ensure iframe already has src; if not, set it)
+  if(!ytIframe.src) {
+    ytIframe.src = "https://www.youtube.com/embed/" + YT_MUSIC_ID + "?autoplay=1&controls=0&loop=1&playlist=" + YT_MUSIC_ID + "&modestbranding=1&iv_load_policy=3&rel=0";
+  }
+
+  // animate cards in sequence
+  const cards = document.querySelectorAll('.wish-card');
+  cards.forEach((c, i)=>{
+    setTimeout(()=> {
+      c.classList.add('card-animate');
+    }, i * 350); // slow and pleasant
+  });
+}
+
+/* ---------- IMAGE REPLACEMENT ---------- */
+const imgPicker = document.getElementById('imgPicker');
+document.querySelectorAll('.wish-card img').forEach(img=>{
+  img.addEventListener('click', ()=>{
+    imgPicker.onchange = (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ev=> { img.src = ev.target.result; };
+      reader.readAsDataURL(file);
+    };
+    imgPicker.click();
+  });
+});
+
+/* Optional: pressing Enter in input triggers submit */
+input.addEventListener('keydown', (e)=> { if(e.key === 'Enter') submitBtn.click(); });
+
+/* Accessibility: focus input on load */
+input.focus();
+</script>
+</body>
+</html>
